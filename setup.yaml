@@ -1,0 +1,86 @@
+---
+- name: Environment setup
+  hosts: localhost
+  vars:
+    homedir: /home/jim
+
+  tasks:
+    - name: Enpass key
+      apt_key:
+        url: https://apt.enpass.io/keys/enpass-linux.key
+        state: present
+      become: true
+    - name: VS Code key
+      apt_key:
+        url: https://packages.microsoft.com/keys/microsoft.asc
+        state: present
+      become: true
+    - name: Brave key
+      apt_key:
+        url: https://brave-browser-apt-release.s3.brave.com/brave-core.asc
+        state: present
+      become: true
+    - name: Brave repository
+      apt_repository:
+        repo: deb [arch=amd64] https://brave-browser-apt-release.s3.brave.com/ bionic main
+        state: present
+      become: true
+    - name: Enpass repository
+      apt_repository:
+        repo: deb https://apt.enpass.io/ stable main
+        state: present
+      become: true
+    - name: VS Code repository
+      apt_repository:
+        repo: deb [arch=amd64] https://packages.microsoft.com/repos/vscode stable main
+        state: present
+      become: true
+    - name: Install deb packages for most tools
+      package:
+        name:
+          - software-properties-common
+          - apt-transport-https
+          - curl
+          - wget
+          - yadm
+          - emacs
+          - yaml-mode
+          - brave-browser
+          - enpass
+          - code
+          - git
+      become: true
+    - name: Install terminus from the .deb file
+      apt:
+        deb: https://github.com/Eugeny/terminus/releases/download/v1.0.92/terminus-1.0.92-linux.deb
+        state: present
+      become: true
+    - name: Get direnv from distribution site
+      shell: curl -sfL https://direnv.net/install.sh | bash
+      args:
+        chdir: "{{ homedir }}"
+        creates: /usr/local/bin/direnv
+      become: true
+    - name: Set up direnv
+      blockinfile:
+        path: "{{ homedir }}/.bashrc"
+        block: |
+          eval "$(direnv hook bash)"
+    - name: Get bash-git-prompt from github
+      git:
+        repo: https://github.com/magicmonty/bash-git-prompt.git
+        dest: "{{ homedir }}/.bash_git_prompt"
+        depth: 1
+    - name: Set up git prompt
+      blockinfile:
+        path: "{{ homedir }}/.bashrc"
+        block: |
+          if [ -f "$HOME/.bash-git-prompt/gitprompt.sh" ]; then
+             GIT_PROMPT_ONLY_IN_REPO=1
+             source $HOME/.bash-git-prompt/gitprompt.sh
+          fi
+      
+ 
+          
+          
+ 
