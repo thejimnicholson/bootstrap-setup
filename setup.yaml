@@ -69,7 +69,7 @@
     - name: Get bash-git-prompt from github
       git:
         repo: https://github.com/magicmonty/bash-git-prompt.git
-        dest: "{{ homedir }}/.bash_git_prompt"
+        dest: "{{ homedir }}/.bash-git-prompt"
         depth: 1
     - name: Set up git prompt
       blockinfile:
