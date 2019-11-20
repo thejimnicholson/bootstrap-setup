@@ -3,84 +3,112 @@
   hosts: localhost
   vars:
     homedir: /home/jim
+    install_gui_tools: true
 
   tasks:
-    - name: Enpass key
-      apt_key:
-        url: https://apt.enpass.io/keys/enpass-linux.key
-        state: present
-      become: true
-    - name: VS Code key
-      apt_key:
-        url: https://packages.microsoft.com/keys/microsoft.asc
-        state: present
-      become: true
-    - name: Brave key
-      apt_key:
-        url: https://brave-browser-apt-release.s3.brave.com/brave-core.asc
-        state: present
-      become: true
-    - name: Brave repository
-      apt_repository:
-        repo: deb [arch=amd64] https://brave-browser-apt-release.s3.brave.com/ bionic main
-        state: present
-      become: true
-    - name: Enpass repository
-      apt_repository:
-        repo: deb https://apt.enpass.io/ stable main
-        state: present
-      become: true
-    - name: VS Code repository
-      apt_repository:
-        repo: deb [arch=amd64] https://packages.microsoft.com/repos/vscode stable main
-        state: present
-      become: true
-    - name: Install deb packages for most tools
+    - name: Add python3
       package:
-        name:
+        name: "{{ packages }}"
+      vars:
+        packages:
+          - python3
+          - python3-virtualenv
+          - python3-psycopg2
+          - python3-pip
+          - virtualenv
+      become: true
+
+    - name: Make python3 the default
+      alternatives:
+        name: python
+        link: /usr/bin/python
+        path: /usr/bin/python3.6
+      become: true
+
+    - name: Install deb packages for command line tools
+      package:
+        name: 
           - software-properties-common
+          - build-essential
+          - libssl-dev
+          - libffi-dev
           - apt-transport-https
           - curl
           - wget
           - yadm
-          - emacs
-          - yaml-mode
-          - brave-browser
-          - enpass
-          - code
           - git
-      become: true
-    - name: Install terminus from the .deb file
-      apt:
-        deb: https://github.com/Eugeny/terminus/releases/download/v1.0.92/terminus-1.0.92-linux.deb
         state: present
+      become: true
+    - name: Add the podman repository
+      apt_repository:
+        repo: ppa:projectatomic/ppa
+      become: true
+    - name: Install podman container support
+      package:
+        name:
+          - uidmap
+          - podman
       become: true
     - name: Get direnv from distribution site
       shell: curl -sfL https://direnv.net/install.sh | bash
       args:
         chdir: "{{ homedir }}"
-        creates: /usr/local/bin/direnv
+        creates: /usr/local/sbin/direnv
       become: true
-    - name: Set up direnv
-      blockinfile:
-        path: "{{ homedir }}/.bashrc"
-        block: |
-          eval "$(direnv hook bash)"
+
     - name: Get bash-git-prompt from github
       git:
         repo: https://github.com/magicmonty/bash-git-prompt.git
         dest: "{{ homedir }}/.bash-git-prompt"
         depth: 1
-    - name: Set up git prompt
-      blockinfile:
-        path: "{{ homedir }}/.bashrc"
-        block: |
-          if [ -f "$HOME/.bash-git-prompt/gitprompt.sh" ]; then
-             GIT_PROMPT_ONLY_IN_REPO=1
-             source $HOME/.bash-git-prompt/gitprompt.sh
-          fi
-      
  
-          
-          
- 
+    - name: Install gui tools
+      block:
+      - name: Enpass key
+        apt_key:
+          url: https://apt.enpass.io/keys/enpass-linux.key
+          state: present
+      - name: VS Code key
+        apt_key:
+          url: https://packages.microsoft.com/keys/microsoft.asc
+          state: present
+      - name: Brave key
+        apt_key:
+          url: https://brave-browser-apt-release.s3.brave.com/brave-core.asc
+          state: present
+      - name: Brave repository
+        apt_repository:
+          repo: deb [arch=amd64] https://brave-browser-apt-release.s3.brave.com/ bionic main
+          state: present
+      - name: Enpass repository
+        apt_repository:
+          repo: deb https://apt.enpass.io/ stable main
+          state: present
+      - name: VS Code repository
+        apt_repository:
+          repo: deb [arch=amd64] https://packages.microsoft.com/repos/vscode stable main
+          state: present
+      - name: Install deb packages for most tools
+        apt:
+          name:
+            - emacs
+            - yaml-mode
+            - brave-browser
+            - enpass
+            - code
+          state: present
+      - name: Install terminus from the .deb file
+        apt:
+          deb: https://github.com/Eugeny/terminus/releases/download/v1.0.92/terminus-1.0.92-linux.deb
+          state: present
+      - name: Install packages via snap
+        snap:
+          name: 
+            - slack
+            - postman
+            - ssb-patchwork
+            - go
+            - redis-desktop-manager
+          classic: yes
+      when: install_gui_tools == true
+      become: true
